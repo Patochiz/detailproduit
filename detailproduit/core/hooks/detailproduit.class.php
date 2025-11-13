@@ -152,10 +152,18 @@ class ActionsDetailproduit
         $output .= '</script>';
 
         // JavaScript pour la mise à jour de label (product_type = 1) - doit être chargé EN PREMIER
-        $output .= '<script type="text/javascript" src="'.dol_buildpath('/detailproduit/js/label_update.js', 1).'"></script>';
+        $label_update_url = dol_buildpath('/detailproduit/js/label_update.js', 1);
+        $output .= '<script type="text/javascript">';
+        $output .= 'console.log("🔗 Tentative de chargement label_update.js depuis:", "'.$label_update_url.'");';
+        $output .= '</script>';
+        $output .= '<script type="text/javascript" src="'.$label_update_url.'"></script>';
 
         // JavaScript principal - doit être chargé APRÈS label_update.js
-        $output .= '<script type="text/javascript" src="'.dol_buildpath('/detailproduit/js/details_popup.js', 1).'"></script>';
+        $details_popup_url = dol_buildpath('/detailproduit/js/details_popup.js', 1);
+        $output .= '<script type="text/javascript">';
+        $output .= 'console.log("🔗 Tentative de chargement details_popup.js depuis:", "'.$details_popup_url.'");';
+        $output .= '</script>';
+        $output .= '<script type="text/javascript" src="'.$details_popup_url.'"></script>';
         
         return $output;
     }
