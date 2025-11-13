@@ -686,7 +686,7 @@ function extractQuantity(lineElement) {
     if (qtyInput) {
         return parseFloat(qtyInput.value) || 1;
     }
-    
+
     // Chercher dans une cellule de quantité
     const qtyCells = lineElement.querySelectorAll('.linecolqty, td');
     for (let cell of qtyCells) {
@@ -696,8 +696,87 @@ function extractQuantity(lineElement) {
             return parseFloat(qtyMatch[0].replace(',', '.')) || 1;
         }
     }
-    
+
     return 1;
+}
+
+/**
+ * Extraire le type de produit depuis la ligne
+ * product_type = 0 pour produit physique, 1 pour service
+ */
+function extractProductType(lineElement) {
+    // Méthode 1: Chercher un input hidden avec product_type
+    const productTypeInput = lineElement.querySelector('input[name*="product_type"]');
+    if (productTypeInput && productTypeInput.value) {
+        return parseInt(productTypeInput.value);
+    }
+
+    // Méthode 2: Chercher dans les attributs data
+    if (lineElement.dataset && lineElement.dataset.productType) {
+        return parseInt(lineElement.dataset.productType);
+    }
+
+    // Méthode 3: Chercher des indices dans le contenu
+    // Les services ont souvent une icône ou un indicateur spécifique
+    const hasServiceIcon = lineElement.querySelector('.fa-concierge-bell, .fa-handshake');
+    if (hasServiceIcon) {
+        return 1;
+    }
+
+    // Méthode 4: Regarder si la ligne contient un lien vers un service
+    const productLinks = lineElement.querySelectorAll('a[href*="product/card.php"]');
+    for (let link of productLinks) {
+        if (link.href.includes('type=1')) {
+            return 1;
+        }
+    }
+
+    // Par défaut, considérer comme un produit physique
+    return 0;
+}
+
+/**
+ * Extraire l'ID du tiers (socid) depuis la page
+ */
+function extractSocid() {
+    // Méthode 1: Chercher dans les variables globales
+    if (typeof window.socid !== 'undefined' && window.socid) {
+        return parseInt(window.socid);
+    }
+
+    // Méthode 2: Chercher dans l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const socidParam = urlParams.get('socid');
+    if (socidParam) {
+        return parseInt(socidParam);
+    }
+
+    // Méthode 3: Chercher dans les liens vers la fiche tiers
+    const thirdpartyLinks = document.querySelectorAll('a[href*="societe/card.php"]');
+    for (let link of thirdpartyLinks) {
+        const match = link.href.match(/[?&]socid=(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+    }
+
+    // Méthode 4: Chercher dans les inputs cachés
+    const socidInput = document.querySelector('input[name="socid"]');
+    if (socidInput && socidInput.value) {
+        return parseInt(socidInput.value);
+    }
+
+    // Méthode 5: Chercher dans les formulaires
+    const forms = document.querySelectorAll('form');
+    for (let form of forms) {
+        const formData = new FormData(form);
+        const socidValue = formData.get('socid');
+        if (socidValue) {
+            return parseInt(socidValue);
+        }
+    }
+
+    return 0;
 }
 
 /**

@@ -69,7 +69,7 @@ window.openLabelUpdateModal = function(commandedetId, socid, productLabel) {
     document.getElementById('labelNCommande').value = '';
     document.getElementById('labelDateCommande').value = '';
     document.getElementById('labelContact').value = '';
-    document.getElementById('labelRefCommande').value = '';
+    document.getElementById('labelRefChantier').value = '';
     
     // Charger les données existantes
     loadLabelDataInternal();
@@ -165,18 +165,18 @@ function createLabelUpdateModal() {
                         </div>
                         
                         <div class="label-form-group">
-                            <label for="labelContact">De</label>
+                            <label for="labelContact">Contact Commande</label>
                             <select id="labelContact" class="label-form-input">
                                 <option value="">-- Sélectionner un contact --</option>
                             </select>
                         </div>
-                        
+
                         <div class="label-form-group">
-                            <label for="labelRefCommande">Référence</label>
-                            <input type="text" 
-                                   id="labelRefCommande" 
-                                   class="label-form-input" 
-                                   placeholder="Saisir la référence">
+                            <label for="labelRefChantier">Ref Chantier</label>
+                            <input type="text"
+                                   id="labelRefChantier"
+                                   class="label-form-input"
+                                   placeholder="Saisir la référence du chantier">
                         </div>
                         
                         <div class="label-preview" id="labelPreview" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 4px; font-style: italic; color: #666;">
@@ -208,7 +208,7 @@ function createLabelUpdateModal() {
     };
     
     // Ajouter les écouteurs pour la mise à jour en temps réel de l'aperçu
-    ['labelNCommande', 'labelDateCommande', 'labelContact', 'labelRefCommande'].forEach(fieldId => {
+    ['labelNCommande', 'labelDateCommande', 'labelContact', 'labelRefChantier'].forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
             field.addEventListener('input', updateLabelPreviewInternal);
@@ -261,12 +261,12 @@ function loadLabelDataInternal() {
 
         if (data.success && data.data) {
             console.log('✅ Données chargées:', data.data);
-            
+
             document.getElementById('labelNCommande').value = data.data.n_commande || '';
             document.getElementById('labelDateCommande').value = data.data.date_commande || '';
             document.getElementById('labelContact').value = data.data.contact || '';
-            document.getElementById('labelRefCommande').value = data.data.ref_commande || '';
-            
+            document.getElementById('labelRefChantier').value = data.data.ref_commande || '';
+
             updateLabelPreviewInternal();
         } else {
             console.log('ℹ️ Aucune donnée existante');
@@ -343,26 +343,27 @@ function loadThirdpartyContactsInternal() {
 
 /**
  * Mettre à jour l'aperçu du label en temps réel
+ * Format: "Commande [N° Commande] du [Date Commande] de [Contact Commande] ref : [Ref Chantier]"
  */
 function updateLabelPreviewInternal() {
     const nCommande = document.getElementById('labelNCommande').value.trim();
     const dateCommande = document.getElementById('labelDateCommande').value;
     const contactId = document.getElementById('labelContact').value;
-    const refCommande = document.getElementById('labelRefCommande').value.trim();
-    
+    const refChantier = document.getElementById('labelRefChantier').value.trim();
+
     let contactName = '';
     if (contactId) {
         const selectContact = document.getElementById('labelContact');
         const selectedOption = selectContact.options[selectContact.selectedIndex];
         contactName = selectedOption ? selectedOption.textContent : '';
     }
-    
+
     const labelParts = [];
-    
+
     if (nCommande) {
-        labelParts.push("Commande n° " + nCommande);
+        labelParts.push("Commande " + nCommande);
     }
-    
+
     if (dateCommande) {
         const dateParts = dateCommande.split('-');
         if (dateParts.length === 3) {
@@ -372,19 +373,19 @@ function updateLabelPreviewInternal() {
             labelParts.push("du " + dateCommande);
         }
     }
-    
+
     if (contactName) {
         labelParts.push("de " + contactName);
     }
-    
-    if (refCommande) {
-        labelParts.push("Réf. : " + refCommande);
+
+    if (refChantier) {
+        labelParts.push("ref : " + refChantier);
     }
-    
-    const previewText = labelParts.length > 0 
-        ? labelParts.join(' ') 
+
+    const previewText = labelParts.length > 0
+        ? labelParts.join(' ')
         : 'Le label sera généré automatiquement';
-    
+
     document.getElementById('labelPreviewText').textContent = previewText;
 }
 
@@ -400,19 +401,19 @@ function saveLabelUpdateInternal() {
     const nCommande = document.getElementById('labelNCommande').value.trim();
     const dateCommande = document.getElementById('labelDateCommande').value;
     const contactId = document.getElementById('labelContact').value;
-    const refCommande = document.getElementById('labelRefCommande').value.trim();
-    
-    if (!nCommande && !dateCommande && !contactId && !refCommande) {
+    const refChantier = document.getElementById('labelRefChantier').value.trim();
+
+    if (!nCommande && !dateCommande && !contactId && !refChantier) {
         showLabelValidationMessage('Veuillez remplir au moins un champ', 'error');
         return;
     }
-    
+
     console.log('📤 Sauvegarde label:', {
         commandedet_id: currentLabelCommandedetId,
         n_commande: nCommande,
         date_commande: dateCommande,
         contact: contactId,
-        ref_commande: refCommande
+        ref_chantier: refChantier
     });
 
     isLabelLoading = true;
@@ -424,7 +425,7 @@ function saveLabelUpdateInternal() {
     formData.append('n_commande', nCommande);
     formData.append('date_commande', dateCommande);
     formData.append('contact', contactId);
-    formData.append('ref_commande', refCommande);
+    formData.append('ref_chantier', refChantier);
     formData.append('token', detailsToken);
     
     fetch(labelAjaxUrl, {

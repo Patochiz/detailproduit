@@ -90,6 +90,19 @@ if ($action === 'create_extrafields') {
             'help' => 'Affichage formaté des détails produit',
             'computed' => '',
             'pos' => 101
+        ),
+        'ref_chantier' => array(
+            'label' => 'Ref Chantier',
+            'type' => 'varchar',
+            'size' => '255',
+            'elementtype' => $element,
+            'visible' => 1,
+            'required' => 0,
+            'unique' => 0,
+            'default' => '',
+            'help' => 'Référence du chantier pour les services',
+            'computed' => '',
+            'pos' => 102
         )
     );
     
@@ -214,8 +227,8 @@ if ($action === 'create_extrafields') {
     if (!empty($existing)) {
         echo '<table>';
         echo '<tr><th>Code</th><th>Libellé</th><th>Type</th><th>Visible</th><th>Requis</th><th>Status</th></tr>';
-        
-        $required_fields = array('detailjson', 'detail');
+
+        $required_fields = array('detailjson', 'detail', 'ref_chantier');
         
         foreach ($existing as $key => $field) {
             $is_required = in_array($key, $required_fields);
@@ -269,6 +282,7 @@ if ($action === 'create_extrafields') {
     echo '<ul>';
     echo '<li><code>detailjson</code> : Stockage JSON des données (type: text long, invisible)</li>';
     echo '<li><code>detail</code> : Affichage formaté (type: HTML, visible)</li>';
+    echo '<li><code>ref_chantier</code> : Référence du chantier pour les services (type: varchar, visible)</li>';
     echo '</ul>';
     echo '</div>';
     
