@@ -185,40 +185,9 @@ class ActionsDetailproduit
             return 0;
         }
 
-        // Contextes où le module doit être actif
-        $active_contexts = array('ordercard', 'ordersuppliercard', 'invoicecard', 'propalcard');
-        
-        // Vérifier si on est sur une page de commande
-        $is_order_page = false;
-        
-        // Méthode 1: Vérifier le contexte
-        if (isset($parameters['context']) && in_array($parameters['context'], $active_contexts)) {
-            $is_order_page = true;
-        }
-        
-        // Méthode 2: Vérifier l'URL
-        if (!$is_order_page && isset($_SERVER['REQUEST_URI'])) {
-            $uri = $_SERVER['REQUEST_URI'];
-            if (strpos($uri, '/commande/card.php') !== false || 
-                strpos($uri, '/order/card.php') !== false ||
-                strpos($uri, '/fourn/commande/card.php') !== false) {
-                $is_order_page = true;
-            }
-        }
-        
-        // Méthode 3: Vérifier le script actuel
-        if (!$is_order_page && isset($_SERVER['SCRIPT_NAME'])) {
-            $script = $_SERVER['SCRIPT_NAME'];
-            if (strpos($script, '/commande/card.php') !== false || 
-                strpos($script, '/order/card.php') !== false ||
-                strpos($script, '/fourn/commande/card.php') !== false) {
-                $is_order_page = true;
-            }
-        }
-
-        if ($is_order_page) {
-            $this->resprints .= $this->includeAssets();
-        }
+        // TOUJOURS inclure les assets - on laisse le JavaScript décider s'il doit s'activer
+        // Cela résout le problème de non-chargement des scripts
+        $this->resprints .= $this->includeAssets();
 
         return 0;
     }
@@ -240,12 +209,8 @@ class ActionsDetailproduit
             return 0;
         }
 
-        // Inclure les assets si pas encore fait
-        $active_contexts = array('ordercard', 'ordersuppliercard');
-        
-        if (isset($parameters['context']) && in_array($parameters['context'], $active_contexts)) {
-            $this->resprints .= $this->includeAssets();
-        }
+        // Inclure les assets si pas encore fait (le flag $assets_included empêche les doublons)
+        $this->resprints .= $this->includeAssets();
 
         return 0;
     }
@@ -315,23 +280,15 @@ class ActionsDetailproduit
             return 0;
         }
 
-        // Fallback: s'assurer que les assets sont inclus sur les pages de commande
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $uri = $_SERVER['REQUEST_URI'];
-            if (strpos($uri, '/commande/card.php') !== false || 
-                strpos($uri, '/order/card.php') !== false ||
-                strpos($uri, '/fourn/commande/card.php') !== false) {
-                
-                $this->resprints .= $this->includeAssets();
-                
-                // CSS supplémentaire pour l'intégration
-                $this->resprints .= '<style type="text/css">';
-                $this->resprints .= '/* Styles spécifiques pour l\'intégration Dolibarr */';
-                $this->resprints .= '.details-btn-open { margin-left: 5px !important; }';
-                $this->resprints .= '.details-summary { font-style: italic; }';
-                $this->resprints .= '</style>';
-            }
-        }
+        // Fallback: inclure les assets (le flag $assets_included empêche les doublons)
+        $this->resprints .= $this->includeAssets();
+
+        // CSS supplémentaire pour l'intégration
+        $this->resprints .= '<style type="text/css">';
+        $this->resprints .= '/* Styles spécifiques pour l\'intégration Dolibarr */';
+        $this->resprints .= '.details-btn-open { margin-left: 5px !important; }';
+        $this->resprints .= '.details-summary { font-style: italic; }';
+        $this->resprints .= '</style>';
 
         return 0;
     }
@@ -353,30 +310,22 @@ class ActionsDetailproduit
             return 0;
         }
 
-        // Dernier recours: inclure les assets sur les pages de commande
-        if (isset($_SERVER['REQUEST_URI'])) {
-            $uri = $_SERVER['REQUEST_URI'];
-            if (strpos($uri, '/commande/card.php') !== false || 
-                strpos($uri, '/order/card.php') !== false ||
-                strpos($uri, '/fourn/commande/card.php') !== false) {
-                
-                $this->resprints .= $this->includeAssets();
-                
-                // Script de vérification final
-                $this->resprints .= '<script type="text/javascript">';
-                $this->resprints .= '// Vérification finale du module detailproduit';
-                $this->resprints .= 'document.addEventListener("DOMContentLoaded", function() {';
-                $this->resprints .= '    console.log("🔍 Vérification finale module detailproduit");';
-                $this->resprints .= '    if (typeof addDetailsButtonsToExistingLines === "undefined") {';
-                $this->resprints .= '        console.error("❌ Module detailproduit non chargé correctement");';
-                $this->resprints .= '    } else {';
-                $this->resprints .= '        console.log("✅ Module detailproduit chargé");';
-                $this->resprints .= '        setTimeout(addDetailsButtonsToExistingLines, 1000);';
-                $this->resprints .= '    }';
-                $this->resprints .= '});';
-                $this->resprints .= '</script>';
-            }
-        }
+        // Dernier recours: inclure les assets (le flag $assets_included empêche les doublons)
+        $this->resprints .= $this->includeAssets();
+
+        // Script de vérification final
+        $this->resprints .= '<script type="text/javascript">';
+        $this->resprints .= '// Vérification finale du module detailproduit';
+        $this->resprints .= 'document.addEventListener("DOMContentLoaded", function() {';
+        $this->resprints .= '    console.log("🔍 Vérification finale module detailproduit");';
+        $this->resprints .= '    if (typeof addDetailsButtonsToExistingLines === "undefined") {';
+        $this->resprints .= '        console.error("❌ Module detailproduit non chargé correctement");';
+        $this->resprints .= '    } else {';
+        $this->resprints .= '        console.log("✅ Module detailproduit chargé");';
+        $this->resprints .= '        setTimeout(addDetailsButtonsToExistingLines, 1000);';
+        $this->resprints .= '    }';
+        $this->resprints .= '});';
+        $this->resprints .= '</script>';
 
         return 0;
     }
