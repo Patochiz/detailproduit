@@ -115,6 +115,7 @@ class modDetailproduit extends DolibarrModules
 			),
 			// Set this to relative path of js file if module must load a js on all pages
 			'js' => array(
+				'/detailproduit/js/label_update.js',  // DOIT être chargé EN PREMIER
 				'/detailproduit/js/details_popup.js',
 			),
 			// Set here all hooks context managed by module. To find available hook context, make a "grep -r '>initHooks(' *" on source code. You can also set hook context to 'all'
