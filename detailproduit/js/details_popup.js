@@ -276,7 +276,14 @@ function findBaseUrl() {
  */
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Initialisation du module detailproduit...');
-    
+
+    // Vérifier si label_update.js est chargé
+    console.log('🔍 Vérification chargement label_update.js:', {
+        openLabelUpdateModal: typeof openLabelUpdateModal,
+        closeLabelUpdateModal: typeof closeLabelUpdateModal,
+        saveLabelUpdate: typeof saveLabelUpdate
+    });
+
     // Initialiser les variables depuis les globales PHP
     initializeGlobalVariables();
     
@@ -617,13 +624,26 @@ function addDetailsButtonToLine(lineId, lineElement) {
                 e.preventDefault();
                 const productName = extractProductName(lineElement);
                 console.log('🏷️ Ouverture popup label pour service:', productName);
-                
+
                 // S'assurer que label_update.js est chargé
                 if (typeof openLabelUpdateModal === 'function') {
+                    console.log('✅ Fonction openLabelUpdateModal trouvée, appel en cours...');
                     openLabelUpdateModal(lineId, socid, productName);
                 } else {
                     console.error('❌ Fonction openLabelUpdateModal non trouvée');
-                    alert('Erreur : Le module de mise à jour de label n\'est pas chargé.');
+                    console.error('🔍 Fonctions window disponibles:', Object.keys(window).filter(k => k.includes('Label') || k.includes('label')));
+
+                    // Réessayer après un court délai (le script n'est peut-être pas encore chargé)
+                    console.log('⏳ Tentative de rechargement après délai...');
+                    setTimeout(function() {
+                        if (typeof openLabelUpdateModal === 'function') {
+                            console.log('✅ Fonction trouvée après délai, appel...');
+                            openLabelUpdateModal(lineId, socid, productName);
+                        } else {
+                            console.error('❌ Fonction toujours non trouvée après délai');
+                            alert('Erreur : Le module de mise à jour de label n\'est pas chargé.\n\nVeuillez vider le cache de votre navigateur (Ctrl+F5) et réessayer.');
+                        }
+                    }, 100);
                 }
                 return false;
             };
