@@ -150,12 +150,12 @@ class ActionsDetailproduit
         $output .= '  newtoken: window.newtoken ? window.newtoken.substring(0,10) + "..." : "UNDEFINED"' . "\n";
         $output .= '});' . "\n";
         $output .= '</script>';
-        
-        // JavaScript principal
-        $output .= '<script type="text/javascript" src="'.dol_buildpath('/detailproduit/js/details_popup.js', 1).'"></script>';
-        
-        // JavaScript pour la mise à jour de label (product_type = 9)
+
+        // JavaScript pour la mise à jour de label (product_type = 1) - doit être chargé EN PREMIER
         $output .= '<script type="text/javascript" src="'.dol_buildpath('/detailproduit/js/label_update.js', 1).'"></script>';
+
+        // JavaScript principal - doit être chargé APRÈS label_update.js
+        $output .= '<script type="text/javascript" src="'.dol_buildpath('/detailproduit/js/details_popup.js', 1).'"></script>';
         
         return $output;
     }
