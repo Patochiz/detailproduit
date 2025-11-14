@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diagnostic Contacts</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .debug-box { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Diagnostic Contacts Tiers</h1>
+
+    <div>
+        <label>ID Tiers (socid): </label>
+        <input type="number" id="socid" value="" placeholder="Ex: 123">
+        <button onclick="testContacts()">Tester</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        function testContacts() {
+            const socid = document.getElementById('socid').value;
+            
+            if (!socid || socid <= 0) {
+                alert('Veuillez saisir un ID de tiers valide');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p class="info">⏳ Test en cours...</p>';
+
+            console.log('🔍 Test contacts pour socid:', socid);
+
+            // Test 1: Appel AJAX
+            const formData = new URLSearchParams();
+            formData.append('action', 'get_thirdparty_contacts');
+            formData.append('socid', socid);
+            
+            // Récupérer le token depuis la page
+            const tokenInput = document.querySelector('input[name="token"]');
+            if (tokenInput) {
+                formData.append('token', tokenInput.value);
+            }
+
+            fetch('/doli/custom/detailproduit/ajax/label_handler.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData.toString()
+            })
+            .then(response => {
+                console.log('📥 Réponse HTTP:', response.status, response.statusText);
+                return response.text();
+            })
+            .then(text => {
+                console.log('📄 Réponse brute:', text);
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Réponse non-JSON: ' + text.substring(0, 200));
+                }
+
+                console.log('📋 Données parsées:', data);
+
+                let html = '<h2>Résultats</h2>';
+
+                if (data.success) {
+                    html += '<p class="success">✅ Succès</p>';
+                    
+                    // Debug info
+                    if (data.debug) {
+                        html += '<div class="debug-box">';
+                        html += '<h3>Informations de debug:</h3>';
+                        html += '<ul>';
+                        html += '<li>Socid: ' + data.debug.socid + '</li>';
+                        html += '<li>Total trouvés: ' + data.debug.total_found + '</li>';
+                        html += '<li>Contacts valides: ' + data.debug.valid_contacts + '</li>';
+                        html += '<li>Contacts ignorés: ' + data.debug.skipped + '</li>';
+                        html += '</ul>';
+                        html += '</div>';
+                    }
+
+                    // Liste des contacts
+                    if (data.contacts && data.contacts.length > 0) {
+                        html += '<h3>Contacts trouvés (' + data.contacts.length + '):</h3>';
+                        html += '<table>';
+                        html += '<tr><th>ID</th><th>Nom</th></tr>';
+                        data.contacts.forEach(contact => {
+                            html += '<tr>';
+                            html += '<td>' + contact.id + '</td>';
+                            html += '<td>' + contact.name + '</td>';
+                            html += '</tr>';
+                        });
+                        html += '</table>';
+                    } else {
+                        html += '<p class="info">ℹ️ Aucun contact trouvé pour ce tiers</p>';
+                        html += '<p>Raisons possibles:</p>';
+                        html += '<ul>';
+                        html += '<li>Le tiers n\'a pas de contacts</li>';
+                        html += '<li>Tous les contacts sont inactifs</li>';
+                        html += '<li>Tous les contacts sont des adresses (civilité ADR)</li>';
+                        html += '</ul>';
+                    }
+                } else {
+                    html += '<p class="error">❌ Erreur: ' + (data.error || 'Erreur inconnue') + '</p>';
+                    
+                    if (data.debug) {
+                        html += '<div class="debug-box">';
+                        html += '<h3>Debug:</h3>';
+                        html += '<pre>' + JSON.stringify(data.debug, null, 2) + '</pre>';
+                        html += '</div>';
+                    }
+                }
+
+                resultsDiv.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('❌ Erreur:', error);
+                resultsDiv.innerHTML = '<p class="error">❌ Erreur: ' + error.message + '</p>';
+            });
+        }
+
+        // Auto-remplir le socid depuis l'URL si présent
+        window.addEventListener('load', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const socid = urlParams.get('socid');
+            if (socid) {
+                document.getElementById('socid').value = socid;
+            }
+        });
+    </script>
+</body>
+</html>

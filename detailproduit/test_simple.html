@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test label_update.js</title>
+</head>
+<body>
+    <h1>Test de chargement label_update.js</h1>
+    <div id="results"></div>
+
+    <script>
+        // Variables globales Dolibarr
+        window.DOL_URL_ROOT = '/doli';
+        window.token = 'test_' + Date.now();
+        
+        console.log('=== DEBUT TEST ===');
+    </script>
+
+    <!-- Chargement du fichier -->
+    <script src="./js/label_update.js"></script>
+
+    <script>
+        setTimeout(function() {
+            const results = document.getElementById('results');
+            let html = '<h2>Résultats:</h2><ul>';
+            
+            // Test 1: Fichier chargé?
+            const labelFunctions = Object.keys(window).filter(k => k.toLowerCase().includes('label'));
+            html += '<li>Fonctions avec "label": ' + labelFunctions.length + '</li>';
+            
+            // Test 2: Fonctions spécifiques
+            html += '<li>openLabelUpdateModal: ' + (typeof window.openLabelUpdateModal) + '</li>';
+            html += '<li>closeLabelUpdateModal: ' + (typeof window.closeLabelUpdateModal) + '</li>';
+            html += '<li>saveLabelUpdate: ' + (typeof window.saveLabelUpdate) + '</li>';
+            
+            html += '</ul>';
+            
+            if (typeof window.openLabelUpdateModal === 'function') {
+                html += '<p style="color:green"><strong>✅ SUCCESS - Les fonctions sont chargées!</strong></p>';
+                html += '<button onclick="openLabelUpdateModal(1, 2, \'Test\')">Tester openLabelUpdateModal</button>';
+            } else {
+                html += '<p style="color:red"><strong>❌ ECHEC - Les fonctions ne sont pas chargées</strong></p>';
+                html += '<p>Vérifiez la console pour plus de détails</p>';
+            }
+            
+            results.innerHTML = html;
+            
+            console.log('=== FIN TEST ===');
+            console.log('Fonctions trouvées:', labelFunctions);
+        }, 1000);
+    </script>
+</body>
+</html>

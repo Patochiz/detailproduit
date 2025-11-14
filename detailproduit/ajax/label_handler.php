@@ -142,51 +142,129 @@ try {
         debug_log("=== ACTION: get_thirdparty_contacts ===");
 
         $socid = GETPOST('socid', 'int');
-        debug_log("Socid: " . $socid);
+        debug_log("Socid reçu: " . $socid);
 
-        if (!$socid) {
+        if (!$socid || $socid <= 0) {
+            debug_log("ERREUR: socid invalide ou manquant");
             http_response_code(400);
-            echo json_encode(array('success' => false, 'error' => 'Missing socid parameter'));
+            echo json_encode(array(
+                'success' => false, 
+                'error' => 'Missing or invalid socid parameter',
+                'debug' => array('socid' => $socid)
+            ));
             exit;
         }
 
         // Vérifier permissions
         if (!$user->hasRight('societe', 'lire')) {
+            debug_log("ERREUR: Pas de permission lecture tiers");
             http_response_code(403);
             echo json_encode(array('success' => false, 'error' => 'No read permission for thirdparties'));
             exit;
         }
 
-        // Récupérer les contacts du tiers en excluant ceux avec civilité "ADR" (Adresse)
-        $sql = "SELECT c.rowid, c.lastname, c.firstname, c.civility";
+        // Vérifier que le tiers existe
+        $sql_check = "SELECT rowid FROM ".MAIN_DB_PREFIX."societe WHERE rowid = ".((int) $socid);
+        $resql_check = $db->query($sql_check);
+        if (!$resql_check || $db->num_rows($resql_check) == 0) {
+            debug_log("ERREUR: Tiers introuvable - ID: " . $socid);
+            http_response_code(404);
+            echo json_encode(array(
+                'success' => false, 
+                'error' => 'Thirdparty not found',
+                'debug' => array('socid' => $socid)
+            ));
+            exit;
+        }
+        debug_log("Tiers trouvé - ID: " . $socid);
+
+        // Récupérer les contacts du tiers
+        // Plusieurs stratégies pour exclure les adresses :
+        // 1. Civilité != 'ADR'
+        // 2. Civilité != 'MR0' (code Dolibarr pour "Adresse")
+        // 3. lastname != 'ADR' et lastname != 'Adresse'
+        $sql = "SELECT c.rowid, c.lastname, c.firstname, c.civility, c.email";
         $sql .= " FROM ".MAIN_DB_PREFIX."socpeople c";
         $sql .= " WHERE c.fk_soc = ".((int) $socid);
-        $sql .= " AND c.statut = 1";  // Actif
-        $sql .= " AND (c.civility IS NULL OR c.civility != 'ADR')";  // Exclure civilité Adresse
+        $sql .= " AND c.statut = 1";  // Actif uniquement
+        // Exclure les adresses de livraison/facturation
+        $sql .= " AND (c.civility IS NULL OR (c.civility != 'ADR' AND c.civility != 'MR0'))";
+        $sql .= " AND (c.lastname NOT IN ('ADR', 'Adresse', 'ADRESSE'))";
         $sql .= " ORDER BY c.lastname, c.firstname";
 
         debug_log("SQL contacts: " . $sql);
 
         $resql = $db->query($sql);
         if (!$resql) {
+            debug_log("ERREUR SQL: " . $db->lasterror());
             http_response_code(500);
-            echo json_encode(array('success' => false, 'error' => 'Database error: ' . $db->lasterror()));
+            echo json_encode(array(
+                'success' => false, 
+                'error' => 'Database error',
+                'debug' => array('sql_error' => $db->lasterror())
+            ));
             exit;
         }
 
+        $num_contacts = $db->num_rows($resql);
+        debug_log("Nombre de contacts trouvés: " . $num_contacts);
+
         $contacts = array();
+        $skipped = 0;
+        
         while ($obj = $db->fetch_object($resql)) {
-            $name = trim(($obj->firstname ? $obj->firstname . ' ' : '') . $obj->lastname);
-            if (empty($name)) $name = 'Contact #' . $obj->rowid;
+            // Construire le nom du contact
+            $name_parts = array();
+            
+            if (!empty($obj->firstname)) {
+                $name_parts[] = $obj->firstname;
+            }
+            if (!empty($obj->lastname)) {
+                $name_parts[] = $obj->lastname;
+            }
+            
+            $name = trim(implode(' ', $name_parts));
+            
+            // Si pas de nom, utiliser l'email ou un identifiant par défaut
+            if (empty($name)) {
+                if (!empty($obj->email)) {
+                    $name = $obj->email;
+                } else {
+                    $name = 'Contact #' . $obj->rowid;
+                }
+            }
+
+            // Vérifier que ce n'est pas une adresse déguisée
+            $name_lower = strtolower($name);
+            if (strpos($name_lower, 'adresse') !== false || 
+                strpos($name_lower, 'livraison') !== false ||
+                strpos($name_lower, 'facturation') !== false) {
+                debug_log("Contact ignoré (ressemble à une adresse): " . $name);
+                $skipped++;
+                continue;
+            }
 
             $contacts[] = array(
-                'id' => $obj->rowid,
+                'id' => (int)$obj->rowid,
                 'name' => $name
             );
+            
+            debug_log("Contact ajouté: ID=" . $obj->rowid . ", Name=" . $name);
         }
 
-        debug_log("Contacts trouvés: " . count($contacts));
-        echo json_encode(array('success' => true, 'contacts' => $contacts));
+        debug_log("Contacts valides: " . count($contacts) . " | Ignorés: " . $skipped);
+
+        // Retourner la liste même si vide
+        echo json_encode(array(
+            'success' => true, 
+            'contacts' => $contacts,
+            'debug' => array(
+                'socid' => $socid,
+                'total_found' => $num_contacts,
+                'valid_contacts' => count($contacts),
+                'skipped' => $skipped
+            )
+        ));
         exit;
     }
 
